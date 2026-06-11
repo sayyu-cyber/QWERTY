@@ -43,7 +43,9 @@ BML_TEST_CARD = {
 
 MERCHANTS = [
     "Shopee", "Temu", "AliExpress", "Amazon",
-    "Shein", "eBay", "PayPal", "Alibaba", "Other"
+    "Shein", "eBay", "PayPal", "Alibaba",
+    "iBay", "Noon", "Namecheap", "Netflix",
+    "Spotify", "Steam", "Other"
 ]
 
 # ── Logging ───────────────────────────────────────────────────────────────────
