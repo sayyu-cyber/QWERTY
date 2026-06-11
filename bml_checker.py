@@ -17,6 +17,15 @@ import sqlite3
 import requests
 from datetime import datetime, timedelta
 from collections import defaultdict
+from zoneinfo import ZoneInfo
+
+MALDIVES_TZ = ZoneInfo("Indian/Maldives")
+
+def now_mv():
+    return datetime.now(MALDIVES_TZ)
+
+def now_mv_str():
+    return now_mv().strftime("%-m/%-d/%Y, %-I:%M:%S %p")
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -87,7 +96,7 @@ def log_window_state(state, merchant="auto", method="probe"):
     conn = sqlite3.connect(DB_FILE)
     conn.execute(
         "INSERT INTO window_log (state, merchant, method, timestamp) VALUES (?,?,?,?)",
-        (state, merchant, method, datetime.now().isoformat())
+        (state, merchant, method, now_mv().isoformat())
     )
     conn.commit()
     conn.close()
@@ -104,13 +113,13 @@ def log_report(user_id, username, merchant, status):
     conn = sqlite3.connect(DB_FILE)
     conn.execute(
         "INSERT INTO reports (user_id, username, merchant, status, timestamp) VALUES (?,?,?,?,?)",
-        (user_id, username or "unknown", merchant, status, datetime.now().isoformat())
+        (user_id, username or "unknown", merchant, status, now_mv().isoformat())
     )
     conn.commit()
     conn.close()
 
 def get_recent_reports(hours=2):
-    since = (datetime.now() - timedelta(hours=hours)).isoformat()
+    since = (now_mv() - timedelta(hours=hours)).isoformat()
     conn = sqlite3.connect(DB_FILE)
     rows = conn.execute(
         "SELECT merchant, status, timestamp FROM reports WHERE timestamp > ? ORDER BY timestamp DESC",
@@ -208,7 +217,7 @@ def probe_community_signals() -> bool:
     Check if recent community reports suggest window is open.
     Fallback when API probes are blocked.
     """
-    since = (datetime.now() - timedelta(minutes=20)).isoformat()
+    since = (now_mv() - timedelta(minutes=20)).isoformat()
     conn = sqlite3.connect(DB_FILE)
     recent_success = conn.execute(
         "SELECT COUNT(*) FROM reports WHERE status='success' AND timestamp > ?",
@@ -289,7 +298,7 @@ async def auto_check_job(context: ContextTypes.DEFAULT_TYPE):
     app = context.application
     is_open, source = check_window()
     current_state = "open" if is_open else "closed"
-    now_str = datetime.now().strftime("%-m/%-d/%Y, %-I:%M:%S %p")
+    now_str = now_mv_str()
 
     last = get_last_window_state()
     last_state = last[0] if last else None
@@ -427,7 +436,7 @@ async def button_handler(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
             last = get_last_window_state()
             if not last or last[0] != "open":
                 log_window_state("open", merchant=merchant, method="community")
-                now_str = datetime.now().strftime("%-m/%-d/%Y, %-I:%M:%S %p")
+                now_str = now_mv_str()
                 await notify_channel(ctx.application, "open", merchant, now_str)
 
         icon = "✅" if status == "success" else "❌"
